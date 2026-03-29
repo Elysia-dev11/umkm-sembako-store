@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/hooks/useCart';
-import { MapPin, CreditCard, Truck, CheckCircle } from 'lucide-react';
+import { MapPin, CreditCard, CheckCircle, LogIn } from 'lucide-react';
 
 const paymentMethods = [
   { id: 'cash', name: 'Bayar di Tempat (COD)', icon: '💵' },
@@ -16,7 +16,7 @@ export default function CheckoutPage() {
   const { items, getTotal, clearCart } = useCart();
   const [step, setStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
-
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -28,6 +28,30 @@ export default function CheckoutPage() {
   const deliveryCost = 10000;
   const subtotal = getTotal();
   const total = subtotal + deliveryCost;
+
+  // Check authentication
+  useEffect(() => {
+    const checkAuth = () => {
+      const user = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+      setIsLoggedIn(!!(user && token));
+    };
+    checkAuth();
+  }, []);
+
+  // Redirect if not logged in
+  useEffect(() => {
+    if (isLoggedIn === false) {
+      router.push('/login?redirect=/checkout');
+    }
+  }, [isLoggedIn, router]);
+
+  // Redirect if cart is empty
+  useEffect(() => {
+    if (items.length === 0 && step !== 3) {
+      router.push('/cart');
+    }
+  }, [items.length, step, router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -43,9 +67,36 @@ export default function CheckoutPage() {
     setIsProcessing(false);
   };
 
-  if (items.length === 0 && step !== 3) {
-    router.push('/cart');
-    return null;
+  // Loading state while checking auth
+  if (isLoggedIn === null) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Not logged in - show login prompt
+  if (isLoggedIn === false) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl shadow-sm p-8 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <LogIn className="text-yellow-500" size={32} />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Login Diperlukan</h2>
+          <p className="text-gray-600 mb-6">
+            Anda harus login terlebih dahulu untuk melakukan checkout.
+          </p>
+          <button
+            onClick={() => router.push('/login?redirect=/checkout')}
+            className="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+          >
+            Login Sekarang
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -87,6 +138,7 @@ export default function CheckoutPage() {
                   placeholder="Masukkan nama lengkap"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nomor Telepon</label>
                 <input
@@ -98,6 +150,7 @@ export default function CheckoutPage() {
                   placeholder="08xxxxxxxxxx"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Alamat Lengkap</label>
                 <textarea
@@ -109,6 +162,7 @@ export default function CheckoutPage() {
                   placeholder="Jl. nama jalan, nomor rumah, RT/RW, kelurahan, kecamatan"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Catatan (opsional)</label>
                 <input

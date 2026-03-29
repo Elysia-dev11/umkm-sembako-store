@@ -2,13 +2,17 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get('redirect') || '/';
+
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -17,10 +21,31 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate login
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsLoading(false);
-    router.push('/');
+    setError('');
+
+    try {
+      // Simulate login - in production, call API
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Mock user data
+      const user = {
+        id: '1',
+        email: formData.email,
+        name: formData.email.split('@')[0],
+        role: formData.email.includes('admin') ? 'ADMIN' : 'CUSTOMER',
+      };
+
+      // Save to localStorage
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('token', 'mock-jwt-token-' + Date.now());
+
+      // Redirect to original page or home
+      router.push(redirect);
+    } catch (err) {
+      setError('Email atau password salah');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -31,6 +56,12 @@ export default function LoginPage() {
             <h1 className="text-2xl font-bold text-gray-900">Masuk</h1>
             <p className="text-gray-600 mt-2">Selamat datang kembali di Sembako Store</p>
           </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -95,6 +126,13 @@ export default function LoginPage() {
               Daftar sekarang
             </Link>
           </p>
+
+          {/* Demo credentials */}
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            <p className="text-sm text-gray-600 text-center">
+              <strong>Demo:</strong> Gunakan email apapun untuk login
+            </p>
+          </div>
         </div>
       </div>
     </div>
