@@ -1,0 +1,205 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  stock       Int      @default(0)
+  category    Category @relation(fields: [categoryId], references: [id])
+  categoryId  String
+  imageUrl    String?
+  expiryDate  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+
+  @@index([categoryId])
+  @@index([createdAt])
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  products    Product[]
+  createdAt   DateTime @default(now())
+
+  @@index([name])
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  phone     String?
+  address   String?
+  role      Role     @default(CUSTOMER)
+  cart      Cart?
+  orders    Order[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+  RIDER
+}
+
+model Cart {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   @unique
+  items     CartItem[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CartItem {
+  id        String  @id @default(cuid())
+  cart      Cart    @relation(fields: [cartId], references: [id])
+  cartId    String
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
+  quantity  Int     @default(1)
+  
+  @@unique([cartId, productId])
+}
+
+model Order {
+  id               String    @id @default(cuid())
+  user             User      @relation(fields: [userId], references: [id])
+  userId           String
+  orderNumber      String    @unique @default(uuid())
+  totalAmount      Decimal   @db.Decimal(10, 2)
+  deliveryCost     Decimal   @db.Decimal(10, 2)
+  status           OrderStatus @default(PENDING)
+  deliveryAddress  String
+  customerNotes    String?
+  items            OrderItem[]
+  payment          Payment?
+  delivery         Delivery?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([orderNumber])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  READY_FOR_DELIVERY
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  order     Order   @relation(fields: [orderId], references: [id])
+  orderId   String
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
+  quantity  Int
+  price     Decimal @db.Decimal(10, 2) // Price at time of order
+
+  @@unique([orderId, productId])
+}
+
+model Payment {
+  id             String         @id @default(cuid())
+  order          Order          @relation(fields: [orderId], references: [id])
+  orderId        String         @unique
+  method         PaymentMethod
+  amount         Decimal        @db.Decimal(10, 2)
+  status         PaymentStatus  @default(PENDING)
+  transactionId  String?
+  paidAt         DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([orderId])
+  @@index([transactionId])
+  @@index([status])
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  E_WALLET
+  CASH_ON_DELIVERY
+  CREDIT_CARD
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+model Delivery {
+  id                  String           @id @default(cuid())
+  order               Order            @relation(fields: [orderId], references: [id])
+  orderId             String           @unique
+  rider               User?            @relation(fields: [riderId], references: [id])
+  riderId             String?
+  status              DeliveryStatus   @default(PENDING)
+  trackingUrl         String?
+  estimatedDelivery   DateTime?
+  actualDelivery      DateTime?
+  deliveryNotes       String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  @@index([orderId])
+  @@index([riderId])
+  @@index([status])
+}
+
+enum DeliveryStatus {
+  PENDING
+  ASSIGNED
+  PICKED_UP
+  ON_THE_WAY
+  DELIVERED
+  FAILED
+}
+
+model InventoryLog {
+  id          String   @id @default(cuid())
+  product     Product  @relation(fields: [productId], references: [id])
+  productId   String
+  change      Int      // Positive for addition, negative for deduction
+  reason      InventoryChangeReason
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@index([productId])
+  @@index([createdAt])
+}
+
+enum InventoryChangeReason {
+  PURCHASE
+  RESTOCK
+  ADJUSTMENT
+  EXPIRED
+  DAMAGED
+  RETURN
+}
