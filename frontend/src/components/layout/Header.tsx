@@ -3,11 +3,16 @@
 import Link from 'next/link';
 import { useCart } from '@/hooks/useCart';
 import { ShoppingCart, Menu, User, Search } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function Header() {
   const itemCount = useCart((state) => state.getItemCount());
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -51,13 +56,16 @@ export default function Header() {
             {/* Cart */}
             <Link href="/cart" className="relative p-2 text-gray-600 hover:text-primary transition-colors">
               <ShoppingCart size={24} />
-              {itemCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-secondary text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+              {mounted && itemCount > 0 && (
+                <span 
+                  className="absolute -top-1 -right-1 bg-secondary text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center"
+                  suppressHydrationWarning
+                >
                   {itemCount}
                 </span>
               )}
             </Link>
-
+            
             {/* User */}
             <Link href="/login" className="p-2 text-gray-600 hover:text-primary transition-colors">
               <User size={24} />

@@ -25,7 +25,6 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [isWishlisted, setIsWishlisted] = useState(false);
 
-  // In real app, fetch product by ID
   const product = mockProduct;
 
   const handleQuantityChange = (delta: number) => {
@@ -43,8 +42,7 @@ export default function ProductDetailPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Back Button */}
-        <Link 
+        <Link
           href="/products"
           className="inline-flex items-center gap-2 text-gray-600 hover:text-primary mb-6"
         >
@@ -54,12 +52,12 @@ export default function ProductDetailPage() {
 
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="grid md:grid-cols-2 gap-8 p-6">
-            {/* Product Image */}
             <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
               <Image
                 src={product.imageUrl}
                 alt={product.name}
                 fill
+                sizes="(max-width: 768px) 100vw, 50vw"
                 className="object-cover"
               />
               {product.stock < 10 && product.stock > 0 && (
@@ -74,7 +72,6 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            {/* Product Info */}
             <div>
               <span className="text-primary font-medium">{product.category}</span>
               <h1 className="text-3xl font-bold text-gray-900 mt-2">{product.name}</h1>
@@ -97,7 +94,6 @@ export default function ProductDetailPage() {
                 )}
               </div>
 
-              {/* Quantity Selector */}
               <div className="mt-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Jumlah
@@ -121,14 +117,14 @@ export default function ProductDetailPage() {
                     </button>
                   </div>
                   <span className="text-gray-600">
-                    Total: <span className="font-bold text-primary">
+                    Total:{' '}
+                    <span className="font-bold text-primary">
                       Rp {(product.price * quantity).toLocaleString('id-ID')}
                     </span>
                   </span>
                 </div>
               </div>
 
-              {/* Action Buttons */}
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={handleAddToCart}
@@ -141,7 +137,9 @@ export default function ProductDetailPage() {
                 <button
                   onClick={() => setIsWishlisted(!isWishlisted)}
                   className={`p-3 rounded-lg border transition-colors ${
-                    isWishlisted ? 'bg-red-50 border-red-300 text-red-500' : 'border-gray-300 text-gray-600 hover:border-gray-400'
+                    isWishlisted
+                      ? 'bg-red-50 border-red-300 text-red-500'
+                      : 'border-gray-300 text-gray-600 hover:border-gray-400'
                   }`}
                 >
                   <Heart size={20} fill={isWishlisted ? 'currentColor' : 'none'} />
