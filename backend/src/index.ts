@@ -17,7 +17,7 @@ import orderRoutes from './routes/order.routes';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Security middleware
@@ -92,7 +92,7 @@ app.use('*', (req, res) => {
 app.use(errorHandler);
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, 'localhost', () => {
   logger.info(`🚀 Server running in ${NODE_ENV} mode on port ${PORT}`);
   logger.info(`📄 API Documentation: http://localhost:${PORT}/api-docs`);
   logger.info(`🩺 Health check: http://localhost:${PORT}/health`);
