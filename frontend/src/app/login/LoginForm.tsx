@@ -47,21 +47,23 @@ export default function LoginForm() {
           return;
         }
 
-        // Save user to localStorage for compatibility
+        // Save user to localStorage for signup - check if admin email
+        const isAdmin = formData.email.includes('admin') || formData.email.includes('@sembako');
         const user = {
           id: signUpData.user?.id || '1',
           email: formData.email,
           name: formData.email.split('@')[0],
-          role: 'CUSTOMER',
+          role: isAdmin ? 'ADMIN' : 'CUSTOMER',
         };
         localStorage.setItem('user', JSON.stringify(user));
       } else {
-        // Save user to localStorage for compatibility
+        // Save user to localStorage - check if admin email
+        const isAdmin = formData.email.includes('admin') || formData.email.includes('@sembako');
         const user = {
           id: data.user?.id || '1',
           email: formData.email,
           name: data.user?.user_metadata?.name || formData.email.split('@')[0],
-          role: 'CUSTOMER',
+          role: isAdmin ? 'ADMIN' : 'CUSTOMER',
         };
         localStorage.setItem('user', JSON.stringify(user));
       }
