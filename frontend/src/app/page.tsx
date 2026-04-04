@@ -3,29 +3,64 @@
 import { ShoppingBag, Truck, Shield, Clock } from 'lucide-react';
 import ProductCard from '@/components/product/ProductCard';
 import Link from 'next/link';
+import { products } from '@/lib/supabase';
+import { useState, useEffect } from 'react';
+import type { Product } from '@/types';
 
-// Mock products data - will be replaced with API call
-const mockProducts = [
-  { id: '1', name: 'Beras Premium 5kg', description: 'Beras premium kualitas terbaik', price: 75000, stock: 50, category: 'Beras', imageUrl: 'https://images.unsplash.com/photo-1586201375761-838e01a08c5a?w=400' },
-  { id: '2', name: 'Minyak Goreng 2L', description: 'Minyak goreng sawit berkualitas', price: 32000, stock: 100, category: 'Minyak', imageUrl: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=400' },
-  { id: '3', name: 'Gula Pasir 1kg', description: 'Gula pasir putih bersih', price: 15000, stock: 80, category: 'Gula', imageUrl: 'https://images.unsplash.com/photo-1558642452-9d2a8deb7120?w=400' },
-  { id: '4', name: 'Telur Ayam 1 Rak', description: 'Telur ayam segar 30 butir', price: 45000, stock: 25, category: 'Telur', imageUrl: 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=400' },
-  { id: '5', name: 'Tepung Terigu 1kg', description: 'Tepung terigu serbaguna', price: 12000, stock: 60, category: 'Tepung', imageUrl: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400' },
-  { id: '6', name: 'Kecap Manis 500ml', description: 'Kecap manis cap kaki tiga', price: 18000, stock: 45, category: 'Bumbu', imageUrl: 'https://images.unsplash.com/photo-1585672840523-5f0b1a4ee7d3?w=400' },
-  { id: '7', name: 'Mie Instan Box', description: 'Mie instan 1 box (40 pcs)', price: 85000, stock: 30, category: 'Mie', imageUrl: 'https://images.unsplash.com/photo-1612929633737-549c6255a8da?w=400' },
-  { id: '8', name: 'Sabun Mandi 3pcs', description: 'Sabun mandi keluarga', price: 25000, stock: 55, category: 'Toiletries', imageUrl: 'https://images.unsplash.com/photo-1600857062241-98e5dba7f214?w=400' },
-];
-
-const categories = [
-  { name: 'Beras', icon: '🍚', count: 15 },
-  { name: 'Minyak', icon: '🫒', count: 8 },
-  { name: 'Gula', icon: '🧂', count: 10 },
-  { name: 'Telur', icon: '🥚', count: 5 },
-  { name: 'Tepung', icon: '🌾', count: 12 },
-  { name: 'Bumbu', icon: '🫚', count: 20 },
-];
+const categoryIcons: Record<string, string> = {
+  beras: '🍚',
+  minyak: '🫒',
+  gula: '🧂',
+  telur: '🥚',
+  tepung: '🌾',
+  bumbu: '🫚',
+  mie: '🍜',
+  toiletries: '🧼',
+};
 
 export default function Home() {
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const data = await products.getAll();
+        const mappedProducts: Product[] = (data || []).map((p: any) => ({
+          id: String(p.id),
+          name: p.name,
+          description: p.description || '',
+          price: Number(p.price),
+          stock: p.stock || 0,
+          category: p.category,
+          imageUrl: p.image || 'https://images.unsplash.com/photo-1586201375761-838e01a08c5a?w=400',
+        }));
+        setAllProducts(mappedProducts);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchProducts();
+  }, []);
+
+  // Calculate category counts from actual data
+  const categoryCounts = allProducts.reduce((acc, p) => {
+    const cat = p.category?.toLowerCase() || 'other';
+    acc[cat] = (acc[cat] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const categories = [
+    { name: 'Beras', slug: 'beras' },
+    { name: 'Minyak', slug: 'minyak' },
+    { name: 'Gula', slug: 'gula' },
+    { name: 'Telur', slug: 'telur' },
+    { name: 'Tepung', slug: 'tepung' },
+    { name: 'Bumbu', slug: 'bumbu' },
+  ];
+
   return (
     <div className="animate-fadeIn">
       {/* Hero Section */}
@@ -50,13 +85,10 @@ export default function Home() {
             </div>
             <div className="hidden md:block">
               <div className="grid grid-cols-3 gap-4">
-                {mockProducts.slice(0, 6).map((product) => (
+                {allProducts.slice(0, 6).map((product) => (
                   <div key={product.id} className="bg-white/20 backdrop-blur-sm rounded-lg p-4 text-center">
                     <div className="text-4xl mb-2">
-                      {product.category === 'Beras' ? '🍚' : 
-                       product.category === 'Minyak' ? '🫒' : 
-                       product.category === 'Gula' ? '🧂' : 
-                       product.category === 'Telur' ? '🥚' : '📦'}
+                      {categoryIcons[product.category?.toLowerCase() || ''] || '📦'}
                     </div>
                     <p className="text-sm font-medium">{product.name.split(' ')[0]}</p>
                   </div>
@@ -103,27 +135,27 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Categories */}
+      {/* Categories - Dynamic from DB */}
       <section className="py-12 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Kategori Produk</h2>
           <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
             {categories.map((cat) => (
               <Link 
-                key={cat.name}
-                href={`/products?category=${cat.name.toLowerCase()}`}
+                key={cat.slug}
+                href={`/products?category=${cat.slug}`}
                 className="bg-white rounded-xl p-4 text-center hover:shadow-md transition-shadow"
               >
-                <div className="text-3xl mb-2">{cat.icon}</div>
+                <div className="text-3xl mb-2">{categoryIcons[cat.slug] || '📦'}</div>
                 <p className="font-medium text-gray-900">{cat.name}</p>
-                <p className="text-sm text-gray-500">{cat.count} produk</p>
+                <p className="text-sm text-gray-500">{categoryCounts[cat.slug] || 0} produk</p>
               </Link>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Featured Products */}
+      {/* Featured Products - From DB */}
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-6">
@@ -132,11 +164,19 @@ export default function Home() {
               Lihat Semua
             </Link>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {mockProducts.map((product) => (
-              <ProductCard key={product.id} product={product as any} />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="skeleton h-64 rounded-xl"></div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {allProducts.slice(0, 8).map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
