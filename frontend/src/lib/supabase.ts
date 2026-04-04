@@ -1,11 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://czitnzwpeqzfnbbosxbz.supabase.co';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_uVIgcp3dLxEK18mNMYJswA_X8ur6tD2';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Helper for auth
+// Auth helpers
 export const auth = {
   signUp: async (email: string, password: string, name: string) => {
     const { data, error } = await supabase.auth.signUp({
@@ -37,7 +37,7 @@ export const auth = {
     supabase.auth.onAuthStateChange(callback),
 };
 
-// Tables
+// Products API
 export const products = {
   getAll: async (params?: { category?: string; search?: string }) => {
     let query = supabase.from('products').select('*');
@@ -48,17 +48,28 @@ export const products = {
     return data;
   },
   
-  getById: async (id: string) => {
+  getById: async (id: string | number) => {
     const { data, error } = await supabase.from('products').select('*').eq('id', id).single();
+    if (error) throw error;
+    return data;
+  },
+
+  getByCategory: async (category: string) => {
+    const { data, error } = await supabase.from('products').select('*').eq('category', category);
     if (error) throw error;
     return data;
   },
 };
 
+// Categories API
 export const categories = {
   getAll: async () => {
-    const { data, error } = await supabase.from('categories').select('*');
+    const { data, error } = await supabase.from('products').select('category');
     if (error) throw error;
-    return data;
+    // Get unique categories
+    const uniqueCategories = [...new Set(data?.map(p => p.category) || [])];
+    return uniqueCategories.map(cat => ({ name: cat, slug: cat }));
   },
 };
+
+export default supabase;
