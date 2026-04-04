@@ -2,27 +2,16 @@
 
 import { Package, ShoppingCart, Users, DollarSign, TrendingUp, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
+import { products as productsApi } from '@/lib/supabase';
+import { useState, useEffect } from 'react';
 
-const stats = [
-  { label: 'Total Produk', value: '156', icon: Package, color: 'bg-blue-500', change: '+12%' },
-  { label: 'Pesanan Hari Ini', value: '24', icon: ShoppingCart, color: 'bg-green-500', change: '+8%' },
-  { label: 'Pelanggan Baru', value: '8', icon: Users, color: 'bg-purple-500', change: '+15%' },
-  { label: 'Pendapatan', value: 'Rp 2.4M', icon: DollarSign, color: 'bg-yellow-500', change: '+22%' },
-];
-
-const recentOrders = [
-  { id: 'ORD-001', customer: 'Budi Santoso', total: 150000, status: 'processing', date: '2026-03-29' },
-  { id: 'ORD-002', customer: 'Ani Wijaya', total: 85000, status: 'shipped', date: '2026-03-29' },
-  { id: 'ORD-003', customer: 'Citra Dewi', total: 200000, status: 'delivered', date: '2026-03-28' },
-  { id: 'ORD-004', customer: 'Dedi Pratama', total: 120000, status: 'pending', date: '2026-03-28' },
-  { id: 'ORD-005', customer: 'Eka Putri', total: 95000, status: 'delivered', date: '2026-03-28' },
-];
-
-const lowStockProducts = [
-  { name: 'Beras Premium 5kg', stock: 5, minStock: 20 },
-  { name: 'Minyak Goreng 2L', stock: 8, minStock: 30 },
-  { name: 'Gula Pasir 1kg', stock: 3, minStock: 25 },
-];
+interface Product {
+  id: number;
+  name: string;
+  category: string;
+  price: number;
+  stock: number;
+}
 
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -39,6 +28,66 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function AdminDashboard() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await productsApi.getAll();
+        setProducts(data || []);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Calculate stats from real data
+  const totalProducts = products.length;
+  const lowStockProducts = products.filter(p => p.stock < 20);
+  const outOfStockProducts = products.filter(p => p.stock === 0);
+
+  const stats = [
+    { 
+      label: 'Total Produk', 
+      value: totalProducts.toString(), 
+      icon: Package, 
+      color: 'bg-blue-500', 
+      change: `${lowStockProducts.length} rendah` 
+    },
+    { 
+      label: 'Stok Menipis', 
+      value: lowStockProducts.length.toString(), 
+      icon: AlertTriangle, 
+      color: 'bg-yellow-500', 
+      change: 'Perlu restock' 
+    },
+    { 
+      label: 'Habis Terjual', 
+      value: outOfStockProducts.length.toString(), 
+      icon: ShoppingCart, 
+      color: 'bg-red-500', 
+      change: 'Segera tambah' 
+    },
+    { 
+      label: 'Total Nilai Stok', 
+      value: `Rp ${products.reduce((sum, p) => sum + (p.price * p.stock), 0).toLocaleString('id-ID', { maximumFractionDigits: 0 })}`, 
+      icon: DollarSign, 
+      color: 'bg-green-500', 
+      change: 'Estimasi' 
+    },
+  ];
+
+  // Get recent orders from localStorage (in real app, this would be from orders table)
+  const recentOrders = [
+    { id: 'ORD-001', customer: 'Tamu Pelanggan', total: 75000, status: 'pending' },
+  ].slice(0, 5);
+
+  const lowStock = products.filter(p => p.stock < 20).slice(0, 5);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -56,7 +105,7 @@ export default function AdminDashboard() {
                 <div>
                   <p className="text-sm text-gray-500">{stat.label}</p>
                   <p className="text-2xl font-bold mt-1">{stat.value}</p>
-                  <p className="text-sm text-green-600 flex items-center gap-1 mt-1">
+                  <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
                     <TrendingUp size={14} />
                     {stat.change}
                   </p>
@@ -79,32 +128,40 @@ export default function AdminDashboard() {
               Lihat Semua
             </Link>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">ID</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Pelanggan</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Total</th>
-                  <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {recentOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium">{order.id}</td>
-                    <td className="px-4 py-3 text-gray-600">{order.customer}</td>
-                    <td className="px-4 py-3">Rp {order.total.toLocaleString('id-ID')}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs ${statusColors[order.status]}`}>
-                        {statusLabels[order.status]}
-                      </span>
-                    </td>
+          {isLoading ? (
+            <div className="p-8 text-center text-gray-500">Memuat...</div>
+          ) : recentOrders.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">ID</th>
+                    <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Pelanggan</th>
+                    <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Total</th>
+                    <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y">
+                  {recentOrders.map((order) => (
+                    <tr key={order.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium">{order.id}</td>
+                      <td className="px-4 py-3 text-gray-600">{order.customer}</td>
+                      <td className="px-4 py-3">Rp {order.total.toLocaleString('id-ID')}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded-full text-xs ${statusColors[order.status]}`}>
+                          {statusLabels[order.status]}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="p-8 text-center text-gray-500">
+              Belum ada pesanan
+            </div>
+          )}
         </div>
 
         {/* Low Stock Alert */}
@@ -114,20 +171,28 @@ export default function AdminDashboard() {
             <h2 className="font-semibold">Stok Menipis</h2>
           </div>
           <div className="p-4 space-y-4">
-            {lowStockProducts.map((product) => (
-              <div key={product.name} className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{product.name}</p>
-                  <p className="text-sm text-red-500">Stok: {product.stock} (Min: {product.minStock})</p>
+            {isLoading ? (
+              <div className="text-center text-gray-500">Memuat...</div>
+            ) : lowStock.length > 0 ? (
+              lowStock.map((product) => (
+                <div key={product.id} className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">{product.name}</p>
+                    <p className="text-sm text-red-500">Stok: {product.stock}</p>
+                  </div>
+                  <Link 
+                    href="/admin/products"
+                    className="text-primary text-sm hover:underline"
+                  >
+                    Update
+                  </Link>
                 </div>
-                <Link 
-                  href="/admin/products"
-                  className="text-primary text-sm hover:underline"
-                >
-                  Update
-                </Link>
+              ))
+            ) : (
+              <div className="text-center text-gray-500">
+                Stok aman
               </div>
-            ))}
+            )}
             <Link 
               href="/admin/products?filter=low_stock"
               className="block text-center text-primary text-sm hover:underline pt-2 border-t"

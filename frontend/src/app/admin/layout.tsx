@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, 
   Package, 
@@ -13,7 +13,7 @@ import {
   Menu,
   X
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const menuItems = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -26,7 +26,51 @@ const menuItems = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    // Check if user is logged in and is admin
+    const checkAuth = () => {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const userData = JSON.parse(userStr);
+          setUser(userData);
+          // Check if user is admin
+          if (userData.role !== 'ADMIN') {
+            router.push('/login?redirect=/admin');
+          }
+        } catch {
+          router.push('/login?redirect=/admin');
+        }
+      } else {
+        router.push('/login?redirect=/admin');
+      }
+      setIsLoading(false);
+    };
+
+    checkAuth();
+  }, [router]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    router.push('/login');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user || user.role !== 'ADMIN') {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -84,7 +128,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </nav>
 
           <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
-            <button className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-red-400 transition-colors w-full">
+            <button 
+              onClick={handleLogout}
+              className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-red-400 transition-colors w-full"
+            >
               <LogOut size={20} />
               Keluar
             </button>

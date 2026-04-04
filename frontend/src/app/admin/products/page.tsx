@@ -1,29 +1,54 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2, Eye } from 'lucide-react';
+import { products as productsApi } from '@/lib/supabase';
 
-const mockProducts = [
-  { id: '1', name: 'Beras Premium 5kg', category: 'Beras', price: 75000, stock: 50, status: 'active' },
-  { id: '2', name: 'Minyak Goreng 2L', category: 'Minyak', price: 32000, stock: 100, status: 'active' },
-  { id: '3', name: 'Gula Pasir 1kg', category: 'Gula', price: 15000, stock: 8, status: 'active' },
-  { id: '4', name: 'Telur Ayam 1 Rak', category: 'Telur', price: 45000, stock: 25, status: 'active' },
-  { id: '5', name: 'Tepung Terigu 1kg', category: 'Tepung', price: 12000, stock: 60, status: 'active' },
-  { id: '6', name: 'Kecap Manis 500ml', category: 'Bumbu', price: 18000, stock: 0, status: 'inactive' },
-];
+interface Product {
+  id: number;
+  name: string;
+  description: string;
+  category: string;
+  price: number;
+  stock: number;
+  image?: string;
+}
 
 export default function AdminProductsPage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Semua');
   const [showModal, setShowModal] = useState(false);
 
-  const categories = ['Semua', 'Beras', 'Minyak', 'Gula', 'Telur', 'Tepung', 'Bumbu'];
+  const categories = ['Semua', 'beras', 'minyak', 'gula', 'telur', 'tepung', 'bumbu', 'mie', 'toiletries'];
 
-  const filteredProducts = mockProducts.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'Semua' || product.category === selectedCategory;
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const data = await productsApi.getAll();
+        setProducts(data || []);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchProducts();
+  }, []);
+
+  const filteredProducts = products.filter((product) => {
+    const matchesSearch = product.name?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'Semua' || product.category?.toLowerCase() === selectedCategory.toLowerCase();
     return matchesSearch && matchesCategory;
   });
+
+  const getCategoryEmoji = (cat: string) => {
+    const emojis: Record<string, string> = {
+      beras: '🍚', minyak: '🫒', gula: '🧂', telur: '🥚', tepung: '🌾', bumbu: '🫚', mie: '🍜', toiletries: '🧼'
+    };
+    return emojis[cat?.toLowerCase()] || '📦';
+  };
 
   return (
     <div className="space-y-6">
@@ -57,7 +82,7 @@ export default function AdminProductsPage() {
             className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
           >
             {categories.map((cat) => (
-              <option key={cat} value={cat}>{cat}</option>
+              <option key={cat} value={cat}>{cat === 'Semua' ? cat : cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
             ))}
           </select>
         </div>
@@ -65,66 +90,69 @@ export default function AdminProductsPage() {
 
       {/* Products Table */}
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Produk</th>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Kategori</th>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Harga</th>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Stok</th>
-                <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Status</th>
-                <th className="text-right px-6 py-3 text-sm font-medium text-gray-500">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {filteredProducts.map((product) => (
-                <tr key={product.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-xl">
-                        {product.category === 'Beras' ? '🍚' : 
-                         product.category === 'Minyak' ? '🫒' : 
-                         product.category === 'Gula' ? '🧂' : 
-                         product.category === 'Telur' ? '🥚' : '📦'}
-                      </div>
-                      <span className="font-medium">{product.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-gray-600">{product.category}</td>
-                  <td className="px-6 py-4">Rp {product.price.toLocaleString('id-ID')}</td>
-                  <td className="px-6 py-4">
-                    <span className={`font-medium ${product.stock < 10 ? 'text-red-500' : 'text-gray-900'}`}>
-                      {product.stock}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      product.status === 'active' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {product.status === 'active' ? 'Aktif' : 'Nonaktif'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-end gap-2">
-                      <button className="p-2 text-gray-400 hover:text-primary">
-                        <Eye size={18} />
-                      </button>
-                      <button className="p-2 text-gray-400 hover:text-blue-500">
-                        <Edit size={18} />
-                      </button>
-                      <button className="p-2 text-gray-400 hover:text-red-500">
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
+        {isLoading ? (
+          <div className="p-8 text-center text-gray-500">Memuat produk...</div>
+        ) : filteredProducts.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Produk</th>
+                  <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Kategori</th>
+                  <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Harga</th>
+                  <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Stok</th>
+                  <th className="text-left px-6 py-3 text-sm font-medium text-gray-500">Status</th>
+                  <th className="text-right px-6 py-3 text-sm font-medium text-gray-500">Aksi</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y">
+                {filteredProducts.map((product) => (
+                  <tr key={product.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-xl">
+                          {getCategoryEmoji(product.category)}
+                        </div>
+                        <span className="font-medium">{product.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-gray-600 capitalize">{product.category}</td>
+                    <td className="px-6 py-4">Rp {(Number(product.price) || 0).toLocaleString('id-ID')}</td>
+                    <td className="px-6 py-4">
+                      <span className={`font-medium ${product.stock < 10 ? 'text-red-500' : 'text-gray-900'}`}>
+                        {product.stock || 0}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        (product.stock || 0) > 0 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {(product.stock || 0) > 0 ? 'Aktif' : 'Habis'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-2">
+                        <button className="p-2 text-gray-400 hover:text-primary">
+                          <Eye size={18} />
+                        </button>
+                        <button className="p-2 text-gray-400 hover:text-blue-500">
+                          <Edit size={18} />
+                        </button>
+                        <button className="p-2 text-gray-400 hover:text-red-500">
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="p-8 text-center text-gray-500">Tidak ada produk</div>
+        )}
       </div>
 
       {/* Add Product Modal */}
@@ -141,7 +169,7 @@ export default function AdminProductsPage() {
                 <label className="block text-sm font-medium mb-1">Kategori</label>
                 <select className="input w-full">
                   {categories.slice(1).map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
+                    <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
                   ))}
                 </select>
               </div>
@@ -160,8 +188,8 @@ export default function AdminProductsPage() {
                 <textarea className="input w-full" rows={3} placeholder="Deskripsi produk" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Gambar</label>
-                <input type="file" className="input w-full" accept="image/*" />
+                <label className="block text-sm font-medium mb-1">Gambar URL</label>
+                <input type="url" className="input w-full" placeholder="https://..." />
               </div>
               <div className="flex gap-4 pt-4">
                 <button
