@@ -12,3 +12,4 @@
 ├── frontend/    # Customer/admin UI
 ├── docs/        # Documentation
 └── scripts/     # Deployment scripts
+
