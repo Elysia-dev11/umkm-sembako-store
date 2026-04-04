@@ -32,7 +32,7 @@ export default function ProductsPage() {
           price: Number(p.price),
           stock: p.stock || 0,
           category: p.category,
-          imageUrl: p.image || 'https://images.unsplash.com/photo-1586201375761-838e01a08c5a?w=400',
+          imageUrl: p.image || '/images/placeholder.svg',
         }));
         setAllProducts(mappedProducts);
         setFilteredProducts(mappedProducts);

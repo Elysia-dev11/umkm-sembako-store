@@ -31,6 +31,22 @@ export default function LoginForm() {
       });
 
       if (signInError) {
+        // Improve error handling for Supabase auth failures
+        let errorMessage = signInError.message;
+        
+        // Handle common Supabase error cases with friendly messages
+        if (signInError.message.includes('Invalid login credentials') || 
+            signInError.message.includes('invalid_credentials') ||
+            signInError.message.includes('400')) {
+          errorMessage = 'Email atau password salah. Silakan periksa kembali.';
+        } else if (signInError.message.includes('Email not confirmed')) {
+          errorMessage = 'Email belum dikonfirmasi. Silakan cek inbox email Anda.';
+        } else if (signInError.message.includes('Too many requests')) {
+          errorMessage = 'Terlalu banyak percobaan. Silakan tunggu beberapa saat.';
+        } else if (signInError.message.includes('Network')) {
+          errorMessage = 'Terjadi masalah koneksi. Silakan periksa internet Anda.';
+        }
+
         // If sign in fails, try to sign up (for demo)
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email: formData.email,
@@ -43,7 +59,15 @@ export default function LoginForm() {
         });
 
         if (signUpError) {
-          setError(signUpError.message || 'Email atau password salah');
+          // Handle signup errors with friendly messages
+          let signupErrorMessage = signUpError.message;
+          if (signUpError.message.includes('already registered') ||
+              signUpError.message.includes('already exists')) {
+            signupErrorMessage = 'Akun sudah terdaftar. Silakan login dengan password yang benar.';
+          } else if (signUpError.message.includes('Password')) {
+            signupErrorMessage = 'Password harus minimal 6 karakter.';
+          }
+          setError(signupErrorMessage);
           return;
         }
 

@@ -24,7 +24,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       <Link href={`/products/${product.id}`}>
         <div className="relative aspect-square bg-gray-100">
           <Image
-            src={product.imageUrl || '/placeholder-product.png'}
+            src={product.imageUrl || '/images/placeholder.svg'}
             alt={product.name}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
