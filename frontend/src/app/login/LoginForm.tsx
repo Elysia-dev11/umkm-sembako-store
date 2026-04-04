@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 export default function LoginForm() {
   const router = useRouter();
@@ -24,25 +25,50 @@ export default function LoginForm() {
     setError('');
 
     try {
-      // Simulate login - in production, call API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Mock user data
-      const user = {
-        id: '1',
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: formData.email,
-        name: formData.email.split('@')[0],
-        role: formData.email.includes('admin') ? 'ADMIN' : 'CUSTOMER',
-      };
+        password: formData.password,
+      });
 
-      // Save to localStorage
-      localStorage.setItem('user', JSON.stringify(user));
-      localStorage.setItem('token', 'mock-jwt-token-' + Date.now());
+      if (signInError) {
+        // If sign in fails, try to sign up (for demo)
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: {
+              name: formData.email.split('@')[0],
+            }
+          }
+        });
 
-      // Redirect to original page or home
+        if (signUpError) {
+          setError(signUpError.message || 'Email atau password salah');
+          return;
+        }
+
+        // Save user to localStorage for compatibility
+        const user = {
+          id: signUpData.user?.id || '1',
+          email: formData.email,
+          name: formData.email.split('@')[0],
+          role: 'CUSTOMER',
+        };
+        localStorage.setItem('user', JSON.stringify(user));
+      } else {
+        // Save user to localStorage for compatibility
+        const user = {
+          id: data.user?.id || '1',
+          email: formData.email,
+          name: data.user?.user_metadata?.name || formData.email.split('@')[0],
+          role: 'CUSTOMER',
+        };
+        localStorage.setItem('user', JSON.stringify(user));
+      }
+
       router.push(redirect);
     } catch (err) {
-      setError('Email atau password salah');
+      setError('Terjadi kesalahan. Silakan coba lagi.');
     } finally {
       setIsLoading(false);
     }
@@ -103,7 +129,10 @@ export default function LoginForm() {
 
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2">
-                <input type="checkbox" className="rounded border-gray-300 text-primary focus:ring-primary" />
+                <input
+                  type="checkbox"
+                  className="rounded border-gray-300 text-primary focus:ring-primary"
+                />
                 <span className="text-sm text-gray-600">Ingat saya</span>
               </label>
               <Link href="/forgot-password" className="text-sm text-primary hover:text-primary-dark">
@@ -127,10 +156,9 @@ export default function LoginForm() {
             </Link>
           </p>
 
-          {/* Demo credentials */}
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <p className="text-sm text-gray-600 text-center">
-              <strong>Demo:</strong> Gunakan email apapun untuk login
+              <strong>Supabase:</strong> Akun baru akan dibuat otomatis jika belum terdaftar
             </p>
           </div>
         </div>
